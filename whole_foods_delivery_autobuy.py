@@ -9,7 +9,22 @@ from selenium.webdriver.common.by import By
 import sys
 import time
 import os
+from random import lognormvariate
 
+from signal import signal, SIGINT
+from sys import exit
+
+def handler(signal_received, frame):
+    # Handle any cleanup here
+    print('SIGINT or CTRL-C detected. Exiting gracefully')
+    exit(0)
+
+signal(SIGINT, handler)
+
+SUCCESS=False
+driver = webdriver.Chrome('/usr/local/bin/chromedriver')
+#driver.maximize_window()
+productUrl = 'https://www.amazon.com/gp/buy/shipoptionselect/handlers/display.html?hasWorkingJavascript=1'
 
 def autoCheckout(driver):
    driver = driver
@@ -75,22 +90,24 @@ def autoCheckout(driver):
 
       print("Order Placed!")
       os.system('say "Order Placed!"')
+      SUCCESS=True
    except NoSuchElementException:
       print("Found a slot but it got taken, run script again.")
       os.system('say "Found a slot but it got taken, run script again."')
-      time.sleep(1400)
+      time.sleep(60)
 
-def getWFSlot(productUrl):
+def getWFSlot(driver):
    headers = {
        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
    }
 
-   driver = webdriver.Chrome()
-   driver.get(productUrl)
-   driver.maximize_window()         
    html = driver.page_source
    soup = bs4.BeautifulSoup(html, "html.parser")
-   time.sleep(60)
+   # wait for page to become final
+   while driver.current_url != productUrl:
+      print("Not yet on checkout page, sleeping")
+      time.sleep(15)
+
    no_open_slots = True
 
    while no_open_slots:
@@ -98,7 +115,9 @@ def getWFSlot(productUrl):
       print("refreshed")
       html = driver.page_source
       soup = bs4.BeautifulSoup(html, "html.parser")
-      time.sleep(4)
+      rand_wait = lognormvariate(0, 0.3) * 4.2
+      print("Sleeping randomly for %f" % rand_wait)
+      time.sleep(rand_wait)
 
       slot_patterns = ['Next available', '1-hour delivery windows', '2-hour delivery windows']
       try:
@@ -146,10 +165,19 @@ def getWFSlot(productUrl):
             os.system('say "Slots for delivery opened!"')
             no_open_slots = False
             autoCheckout(driver)
-
       '''
 
 
-getWFSlot('https://www.amazon.com/gp/buy/shipoptionselect/handlers/display.html?hasWorkingJavascript=1')
+#getWFSlot('https://www.amazon.com/gp/buy/shipoptionselect/handlers/display.html?hasWorkingJavascript=1')
 
+
+while not SUCCESS:
+   try:
+      driver.get(productUrl)
+      getWFSlot(driver)
+   except Exception as e:
+      if isinstance(e, SystemExit):
+         raise
+      print('Checkout failure, trying again')
+#>>>>>>> improvements: run in loop, wait for right page, random timing
 
