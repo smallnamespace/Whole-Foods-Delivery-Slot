@@ -172,6 +172,7 @@ def getWFSlot(driver):
 
 
 while not SUCCESS:
+   print SUCCESS
    try:
       driver.get(productUrl)
       getWFSlot(driver)
