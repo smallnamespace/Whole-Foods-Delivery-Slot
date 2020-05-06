@@ -180,5 +180,5 @@ while not SUCCESS:
       if isinstance(e, SystemExit):
          raise
       print('Checkout failure, trying again')
-#>>>>>>> improvements: run in loop, wait for right page, random timing
+
 
